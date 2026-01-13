@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Master Xiangqi",
+  "description": "A premium Chinese Chess (Xiangqi) application featuring AI opponents powered by Gemini, ranked matchmaking simulation, and detailed tutorials.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
