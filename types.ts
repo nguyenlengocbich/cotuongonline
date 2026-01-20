@@ -113,6 +113,6 @@ export interface MatchRecord {
   date: string;
   opponent: string;
   result: 'win' | 'loss' | 'draw';
-  mode: 'online' | 'ai';
+  mode: 'online' | 'ai' | 'room';
   moves: Move[];
 }

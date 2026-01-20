@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Piece, Color, PieceType, Move } from '../types';
 
@@ -8,7 +9,8 @@ interface BoardProps {
   selectedPiece: Piece | null;
   lastMove: Move | null;
   validMoves: Move[];
-  checkedColor: Color | null; // Cấp màu đang bị chiếu
+  checkedColor: Color | null;
+  rotate?: boolean;
 }
 
 const PIECE_LABELS: Record<string, string> = {
@@ -28,7 +30,7 @@ const PIECE_LABELS: Record<string, string> = {
   [`${Color.BLACK}-${PieceType.SOLDIER}`]: '卒',
 };
 
-export const Board: React.FC<BoardProps> = ({ pieces, onPieceClick, onSquareClick, selectedPiece, validMoves, lastMove, checkedColor }) => {
+export const Board: React.FC<BoardProps> = ({ pieces, onPieceClick, onSquareClick, selectedPiece, validMoves, lastMove, checkedColor, rotate = false }) => {
   const renderGrid = () => {
     return (
       <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 90 100">
@@ -57,8 +59,9 @@ export const Board: React.FC<BoardProps> = ({ pieces, onPieceClick, onSquareClic
         <line x1="35" y1="75" x2="55" y2="95" stroke="#5d4037" strokeWidth="0.5" />
         <line x1="55" y1="75" x2="35" y2="95" stroke="#5d4037" strokeWidth="0.5" />
         
-        <text x="25" y="52" fontSize="5" className="font-chinese" fill="#5d4037" opacity="0.6">楚 河</text>
-        <text x="65" y="52" fontSize="5" className="font-chinese" fill="#5d4037" opacity="0.6">漢 界</text>
+        {/* Xoay chữ Sở Hà Hán Giới theo bàn cờ */}
+        <text x="25" y="52" fontSize="5" className="font-chinese" fill="#5d4037" opacity="0.6" transform={rotate ? "rotate(180, 25, 52)" : ""}>楚 河</text>
+        <text x="65" y="52" fontSize="5" className="font-chinese" fill="#5d4037" opacity="0.6" transform={rotate ? "rotate(180, 65, 52)" : ""}>漢 界</text>
 
         {[
           [1, 2], [7, 2], [0, 3], [2, 3], [4, 3], [6, 3], [8, 3],
@@ -90,9 +93,10 @@ export const Board: React.FC<BoardProps> = ({ pieces, onPieceClick, onSquareClic
   };
 
   return (
-    <div className="relative w-full max-w-md aspect-[9/10] mx-auto shadow-2xl rounded-lg overflow-hidden bg-[#eecfa1]">
+    <div className={`relative w-full max-w-md aspect-[9/10] mx-auto shadow-2xl rounded-lg overflow-hidden bg-[#eecfa1] transition-transform duration-700 ${rotate ? 'rotate-180' : ''}`}>
       {renderGrid()}
       
+      {/* Grid Click Layer - Xoay container không ảnh hưởng toạ độ click DOM nhưng thay đổi vị trí visual */}
       <div className="absolute inset-0 grid grid-cols-9 grid-rows-10 z-10">
          {Array.from({ length: 90 }).map((_, i) => {
              const x = i % 9;
@@ -107,6 +111,7 @@ export const Board: React.FC<BoardProps> = ({ pieces, onPieceClick, onSquareClic
          })}
       </div>
 
+      {/* Piece Layer */}
       <div className="absolute inset-0 pointer-events-none z-20">
         {pieces.map((piece) => {
           const isSelected = selectedPiece?.id === piece.id;
@@ -115,7 +120,8 @@ export const Board: React.FC<BoardProps> = ({ pieces, onPieceClick, onSquareClic
           return (
             <div
               key={piece.id}
-              className={`absolute w-[10%] h-[9%] flex items-center justify-center transition-all duration-300 transform ${isSelected ? 'scale-110 drop-shadow-xl z-30' : 'z-20'}`}
+              // Khi bàn cờ xoay 180 (rotate-180), ta xoay quân cờ 180 (rotate-180) để nó đứng thẳng lại
+              className={`absolute w-[10%] h-[9%] flex items-center justify-center transition-all duration-300 transform ${isSelected ? 'scale-110 drop-shadow-xl z-30' : 'z-20'} ${rotate ? 'rotate-180' : ''}`}
               style={{
                 left: `${(piece.x / 9) * 100}%`,
                 top: `${(piece.y / 10) * 100}%`,

@@ -1,0 +1,5 @@
+
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="45" fill="#f7f1e3" stroke="#b71c1c" stroke-width="3"/>
+  <text x="50" y="68" font-family="sans-serif" font-weight="bold" font-size="50" text-anchor="middle" fill="#b71c1c">帥</text>
+</svg>
