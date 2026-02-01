@@ -14,7 +14,16 @@ export const LoadingIndicator = ({ message = "Đang tải dữ liệu..." }: { m
   </div>
 );
 
-export const SplashLoading = ({ message = "Đang kết nối kỳ đài..." }: { message?: string }) => (
+export const Badge = ({ count, dot = false, className = "" }: { count?: number, dot?: boolean, className?: string }) => {
+  if (!dot && (count === undefined || count <= 0)) return null;
+  return (
+    <div className={`absolute -top-1 -right-1 flex items-center justify-center bg-red-600 text-white rounded-full border-2 border-[#1a1a1a] shadow-lg animate-scale-up z-10 ${dot ? 'w-3 h-3' : 'min-w-[18px] h-[18px] px-1 text-[10px] font-black'} ${className}`}>
+      {!dot && count}
+    </div>
+  );
+};
+
+export const SplashLoading = ({ message = "Đang kết nối trò chơi..." }: { message?: string }) => (
   <div className="fixed inset-0 z-[1000] bg-[#1a1a1a] flex flex-col items-center justify-center p-6 animate-fade-in">
     <div className="relative mb-12">
       <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-yellow-600 shadow-[0_0_50px_rgba(183,28,28,0.4)] animate-float">

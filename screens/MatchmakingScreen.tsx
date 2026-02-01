@@ -6,11 +6,38 @@ import { Player } from '../types';
 import { INITIAL_BOARD_SETUP } from '../services/xiangqiRules';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
+const FOREIGN_BOT_NAMES = [
+   "张伟", "李娜", "王芳", "陈静", 
+    "김지훈", "박서jun", "이영희", 
+    "佐藤 健", "田中 結衣", "鈴木 一郎", 
+    "Robert J. Miller", "Sarah Henderson", "Alex Thompson", "Emily Watson", 
+    "John Smith", "David Wilson", "Emma Stone", "Sophia Brown"
+];
+
 const MatchmakingScreen = ({ user }: { user: Player }) => {
   const navigate = useNavigate();
   const [status, setStatus] = useState<'searching' | 'found' | 'failed'>('searching');
+  const statusRef = useRef<'searching' | 'found' | 'failed'>('searching');
   const [timeLeft, setTimeLeft] = useState(30);
   const roomIdRef = useRef<string | null>(null);
+
+  // Đồng bộ ref với state để dùng trong interval/cleanup
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  // Logic xóa phòng khi thất bại
+  useEffect(() => {
+    if (status === 'failed' && roomIdRef.current) {
+        console.log("Matchmaking failed, deleting auto-created room:", roomIdRef.current);
+        supabase.from('rooms')
+            .delete()
+            .eq('id', roomIdRef.current)
+            .eq('status', 'waiting')
+            .is('code', null) // Chỉ xóa phòng online (không mã)
+            .then();
+    }
+  }, [status]);
 
   useEffect(() => {
     if (status !== 'searching') return;
@@ -22,26 +49,20 @@ const MatchmakingScreen = ({ user }: { user: Player }) => {
       const lossStreak = parseInt(localStorage.getItem('consecutive_online_losses') || '0', 10);
       
       if (lossStreak >= 3) {
-          // Giả lập tìm kiếm một chút
-          await new Promise(r => setTimeout(r, 1500 + Math.random() * 2000));
+          await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000));
+          if (!isSubscribed || statusRef.current !== 'searching') return;
           
-          if (!isSubscribed) return;
-          
-          // Giả lập tìm thấy trận
+          const randomBotName = FOREIGN_BOT_NAMES[Math.floor(Math.random() * FOREIGN_BOT_NAMES.length)];
           setStatus('found');
-          // Chuyển hướng sang trang game với flag bot=true
-          const fakeRoomId = `bot-match-${Date.now()}`;
-          setTimeout(() => navigate(`/game/online/${fakeRoomId}?bot=true`), 2000);
+          const fakeRoomId = `pity-match-${Date.now()}`;
+          setTimeout(() => navigate(`/game/online/${fakeRoomId}?bot=true&botName=${encodeURIComponent(randomBotName)}`), 2000);
           return;
       }
 
       // NẾU KHÔNG PHẢI BOT MATCH, TIẾP TỤC LOGIC TÌM PHÒNG BÌNH THƯỜNG
-      // 1. Thêm một chút delay ngẫu nhiên (jitter) để tránh 2 người cùng tìm thấy 1 phòng cùng 1 lúc 100%
-      await new Promise(r => setTimeout(r, Math.random() * 1000));
-      
-      if (!isSubscribed) return;
+      await new Promise(r => setTimeout(r, 1000));
+      if (!isSubscribed || statusRef.current !== 'searching') return;
 
-      // 2. Tìm phòng đang chờ
       const { data: rooms } = await supabase
         .from('rooms')
         .select('*')
@@ -53,7 +74,6 @@ const MatchmakingScreen = ({ user }: { user: Player }) => {
 
       if (rooms && rooms.length > 0) {
         const room = rooms[0];
-        // 3. ATOMIC UPDATE: Chỉ join nếu phòng VẪN ĐANG TRỐNG
         const { data, error } = await supabase
           .from('rooms')
           .update({ 
@@ -61,25 +81,23 @@ const MatchmakingScreen = ({ user }: { user: Player }) => {
             status: 'playing', 
             board_state: INITIAL_BOARD_SETUP, 
             turn: 'red',
-            created_at: new Date().toISOString() // Cập nhật thời gian bắt đầu
+            created_at: new Date().toISOString()
           })
           .eq('id', room.id)
-          .eq('status', 'waiting') // Điều kiện quan trọng: phòng phải chưa ai join
+          .eq('status', 'waiting')
           .is('black_player_id', null)
           .select();
 
         if (data && data.length > 0 && !error) {
-          // Join thành công
           setStatus('found');
           setTimeout(() => navigate(`/game/online/${room.id}`), 2000);
           return;
         } else {
-          // Có người khác đã join trước hoặc lỗi, thử tìm lại sau 1s
           setTimeout(findMatch, 1000);
           return;
         }
       } else {
-        // 4. Không thấy phòng, tạo phòng mới và làm Red Player
+        // Tạo phòng chờ mới nếu không có phòng nào sẵn dùng
         const { data: newRoom, error: createError } = await supabase
           .from('rooms')
           .insert([{ 
@@ -99,7 +117,6 @@ const MatchmakingScreen = ({ user }: { user: Player }) => {
               table: 'rooms', 
               filter: `id=eq.${newRoom.id}` 
             }, (p) => {
-              // Kiểm tra xem có Black Player join chưa
               if (p.new.status === 'playing' && p.new.black_player_id) {
                 setStatus('found');
                 setTimeout(() => navigate(`/game/online/${newRoom.id}`), 2000);
@@ -107,18 +124,21 @@ const MatchmakingScreen = ({ user }: { user: Player }) => {
             })
             .subscribe();
         } else {
-           // Lỗi tạo phòng, thử lại
            setTimeout(findMatch, 2000);
         }
       }
     };
 
     findMatch();
+
     const timer = setInterval(() => { 
       setTimeLeft((prev) => { 
         if (prev <= 1) { 
           clearInterval(timer); 
-          if (status === 'searching') setStatus('failed'); 
+          // Kiểm tra xem vẫn đang searching thì mới báo failed
+          if (statusRef.current === 'searching') {
+            setStatus('failed');
+          }
           return 0; 
         } 
         return prev - 1; 
@@ -129,28 +149,26 @@ const MatchmakingScreen = ({ user }: { user: Player }) => {
       isSubscribed = false; 
       clearInterval(timer); 
       if (channel) channel.unsubscribe();
-      
-      // Cleanup: Nếu component unmount (ví dụ bấm Back browser) khi đang tìm
-      // thì xóa phòng đã tạo
-      if (status === 'searching' && roomIdRef.current) {
+      // Nếu rời khỏi màn hình khi đang tìm kiếm, hãy xóa phòng
+      if (statusRef.current === 'searching' && roomIdRef.current) {
          supabase.from('rooms')
             .delete()
             .eq('id', roomIdRef.current)
-            .eq('status', 'waiting') // Chỉ xóa nếu vẫn đang waiting
+            .eq('status', 'waiting')
+            .is('code', null)
             .then();
       }
     };
   }, [user.id, status, navigate]);
 
   const handleCancel = async () => {
-    // 1. Nếu đã tạo phòng và đang chờ, xóa phòng đó ngay lập tức
     if (roomIdRef.current) {
         await supabase.from('rooms')
             .delete()
             .eq('id', roomIdRef.current)
-            .eq('status', 'waiting');
+            .eq('status', 'waiting')
+            .is('code', null);
     }
-    // 2. Điều hướng về trang chủ
     navigate('/');
   };
 
@@ -166,7 +184,7 @@ const MatchmakingScreen = ({ user }: { user: Player }) => {
         {status === 'searching' ? 'Đang ghép trận...' : status === 'found' ? 'Tìm thấy đối thủ!' : 'Không tìm thấy ai!'}
       </h2>
       <p className="text-slate-500 text-xs uppercase tracking-widest">
-        {status === 'searching' ? 'Hệ thống đang tìm kỳ thủ xứng tầm' : status === 'found' ? 'Đang chuẩn bị bàn cờ...' : 'Vui lòng thử lại sau'}
+        {status === 'searching' ? 'Hệ thống đang tìm đối thủ xứng tầm' : status === 'found' ? 'Đang chuẩn bị bàn cờ...' : 'Vui lòng thử lại sau'}
       </p>
       <button onClick={handleCancel} className="text-slate-500 font-bold hover:text-white transition-colors mt-12 bg-slate-800/50 px-8 py-3 rounded-full border border-slate-700 active:scale-95">Hủy tìm kiếm</button>
     </div>

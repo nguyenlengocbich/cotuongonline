@@ -2,11 +2,11 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Player } from '../types';
-import { AvatarBox, RankIcon } from './Shared';
+import { AvatarBox, RankIcon, Badge } from './Shared';
 import { DEFAULT_GAME_ICON, RANK_UI_DATA } from '../constants';
 import { Home, Trophy, Users, History, BookOpen } from 'lucide-react';
 
-export const Navbar = ({ user, onLogout, onNavigateHome }: { user: Player | null, onLogout: () => void, onNavigateHome: () => void }) => {
+export const Navbar = ({ user, onLogout }: { user: Player | null, onLogout: () => void }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isHome = location.pathname === '/';
@@ -14,7 +14,7 @@ export const Navbar = ({ user, onLogout, onNavigateHome }: { user: Player | null
   return (
     <nav className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
       <div className="flex justify-between items-center max-w-2xl mx-auto">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={onNavigateHome}>
+        <div className="flex items-center gap-2 select-none">
           <img src={DEFAULT_GAME_ICON} alt="Logo" className="w-8 h-8 rounded-full shadow-lg border border-yellow-600 object-cover" />
           <h1 className="text-xl font-bold tracking-wider">Cờ Tướng Online</h1>
         </div>
@@ -36,7 +36,7 @@ export const Navbar = ({ user, onLogout, onNavigateHome }: { user: Player | null
   );
 };
 
-export const BottomNav = () => {
+export const BottomNav = ({ unreadCount = 0 }: { unreadCount?: number }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const activeTab = location.pathname;
@@ -44,7 +44,7 @@ export const BottomNav = () => {
   const tabs = [
     { path: '/', icon: Home, label: 'Sảnh' },
     { path: '/leaderboard', icon: Trophy, label: 'BXH' },
-    { path: '/friends', icon: Users, label: 'Bạn bè' },
+    { path: '/friends', icon: Users, label: 'Bạn bè', hasBadge: unreadCount > 0 },
     { path: '/history', icon: History, label: 'Lịch sử' },
     { path: '/rules', icon: BookOpen, label: 'Luật chơi' },
   ];
@@ -63,6 +63,7 @@ export const BottomNav = () => {
             }`}
           >
             <Icon className={`w-6 h-6 ${isActive ? 'fill-red-500/10' : ''}`} />
+            {tab.hasBadge && <Badge count={unreadCount} className="!-top-0.5 !-right-0.5" />}
             <span className="text-[10px] font-bold uppercase tracking-tighter">{tab.label}</span>
           </button>
         );

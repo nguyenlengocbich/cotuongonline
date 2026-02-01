@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { Piece, Color, PieceType, Move } from "../types";
-import { getValidMoves, isCheck } from "./xiangqiRules";
+import { getSafeMoves, isCheck } from "./xiangqiRules";
 
 const boardToString = (pieces: Piece[]): string => {
   let boardStr = "";
@@ -46,13 +46,13 @@ export const getBestMove = async (
     const myPieces = pieces.filter(p => p.color === turn);
     const legalMoves: Move[] = [];
     myPieces.forEach(p => {
-      const moves = getValidMoves(p, pieces);
+      // QUAN TRỌNG: Sử dụng getSafeMoves thay vì getValidMoves để tránh AI đi nước phạm quy
+      const moves = getSafeMoves(p, pieces);
       legalMoves.push(...moves);
     });
 
     if (legalMoves.length === 0) return null;
 
-    // TỐI ƯU HÓA: Nếu chỉ có 1 nước đi hợp lệ (nước đi bắt buộc), đi ngay lập tức không cần gọi AI
     if (legalMoves.length === 1) {
         return { ...legalMoves[0], reasoning: "Nước đi bắt buộc" };
     }
@@ -91,7 +91,6 @@ JSON: {"index": number, "reasoning": "ngắn"}`;
           },
           required: ["index", "reasoning"],
         },
-        // TỐI ƯU HÓA QUAN TRỌNG: Tắt thinking budget (về 0) để phản hồi nhanh nhất có thể
         thinkingConfig: { thinkingBudget: 0 },
         maxOutputTokens: 200, 
       }
@@ -118,18 +117,15 @@ JSON: {"index": number, "reasoning": "ngắn"}`;
     
     if (isQuota) {
       if (retries > 0) {
-        console.warn(`Hết hạn mức API, thử lại sau ${backoff}ms...`);
         await delay(backoff);
         return getBestMove(pieces, turn, retries - 1, backoff * 1.5);
       }
       return { fromX: -1, fromY: -1, toX: -1, toY: -1, reasoning: "Hết hạn mức API", isQuotaError: true };
     }
     
-    console.error("Lỗi máy tính toán:", error);
-    // Fallback random move nếu lỗi để game không bị treo
     const myPieces = pieces.filter(p => p.color === turn);
     const legalMoves: Move[] = [];
-    myPieces.forEach(p => legalMoves.push(...getValidMoves(p, pieces)));
+    myPieces.forEach(p => legalMoves.push(...getSafeMoves(p, pieces)));
     if (legalMoves.length > 0) {
         return { ...legalMoves[Math.floor(Math.random() * legalMoves.length)], reasoning: "Lỗi mạng - Đi ngẫu nhiên" };
     }

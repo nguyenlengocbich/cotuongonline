@@ -9,10 +9,10 @@ import { Trophy } from 'lucide-react';
 const LeaderboardScreen = ({ user }: { user: Player | null }) => {
   const [players, setPlayers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => { supabase.from('profiles').select('*').order('points', { ascending: false }).limit(20).then(({ data }) => { if (data) setPlayers(data); setIsLoading(false); }); }, []);
+  useEffect(() => { supabase.from('profiles').select('*').order('points', { ascending: false }).limit(999).then(({ data }) => { if (data) setPlayers(data); setIsLoading(false); }); }, []);
   return (
     <div className="p-4 max-w-md mx-auto space-y-3 animate-fade-in pb-20">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white"><Trophy className="text-yellow-500" /> BXH</h2>
+      <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white"><Trophy className="text-yellow-500" /> Bảng Xếp Hạng</h2>
       {isLoading ? <LoadingIndicator message="Đang tải..." /> : players.map((p, i) => {
         const { tier, subRank } = getRankFromPoints(p.points || 0);
         return (

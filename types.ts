@@ -35,6 +35,7 @@ export enum GameStatus {
   CHECKMATE = 'checkmate',
   STALEMATE = 'stalemate',
   RESIGNED = 'resigned',
+  DRAW = 'draw',
 }
 
 export interface Player {
@@ -69,10 +70,6 @@ export const RANK_ORDER = [
   RankTier.GRANDMASTER
 ];
 
-/**
- * Công thức điểm cần để lên division n (từ 0): 100n + 200
- * Tổng điểm để đạt đến division n: S_n = 50n^2 + 150n
- */
 export const getDivisionThreshold = (n: number) => 50 * n * n + 150 * n;
 
 export const RANK_THRESHOLDS = {
@@ -86,20 +83,13 @@ export const RANK_THRESHOLDS = {
 };
 
 export const getRankFromPoints = (points: number): { tier: RankTier, subRank: number } => {
-  // Giải phương trình 50n^2 + 150n - P = 0 để tìm n
-  // n = (-150 + sqrt(150^2 + 4 * 50 * P)) / (2 * 50)
-  // n = (-150 + sqrt(22500 + 200P)) / 100
   const nRaw = (-150 + Math.sqrt(22500 + 200 * points)) / 100;
   const n = Math.floor(Math.max(0, nRaw));
-  
   const tierIndex = Math.floor(n / 5);
   const subRankIndex = n % 5;
-  
   if (tierIndex >= 6) return { tier: RankTier.GRANDMASTER, subRank: 1 };
-  
   const tier = RANK_ORDER[tierIndex];
   const subRank = 5 - subRankIndex;
-  
   return { tier, subRank };
 };
 

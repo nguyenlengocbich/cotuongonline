@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Color, Player, getRomanNumeral } from '../types';
+import { Color, Player, getRomanNumeral, getRankFromPoints } from '../types';
 import { AvatarBox, RankIcon } from './Shared';
 import { Swords } from 'lucide-react';
 import { RANK_UI_DATA } from '../constants';
@@ -8,9 +8,9 @@ import { RANK_UI_DATA } from '../constants';
 const PlayerCard = ({ player, side, isMe }: { player: any, side: 'left' | 'right', isMe: boolean }) => {
   if (!player) return null;
   
-  const rankTier = player.rankTier || 'Đồng';
-  const subRank = player.subRank || 1;
-  const ui = RANK_UI_DATA[rankTier] || RANK_UI_DATA['Đồng'];
+  // LUÔN TÍNH TOÁN RANK TỪ POINTS ĐỂ ĐẢM BẢO CHÍNH XÁC
+  const { tier, subRank } = getRankFromPoints(player.points || 0);
+  const ui = RANK_UI_DATA[tier] || RANK_UI_DATA['Đồng'];
   
   return (
     <div className={`flex flex-col items-center gap-2 animate-fade-in`}>
@@ -20,14 +20,14 @@ const PlayerCard = ({ player, side, isMe }: { player: any, side: 'left' | 'right
                 className="w-16 h-16 xs:w-20 xs:h-20 sm:w-28 sm:h-28 border-2 sm:border-4 border-slate-800 shadow-2xl" 
             />
             <div className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full p-0.5 border border-slate-800">
-                <RankIcon tier={rankTier} subRank={subRank} size="sm" />
+                <RankIcon tier={tier} subRank={subRank} size="sm" />
             </div>
         </div>
         <div className="text-center">
             <h3 className="text-[10px] xs:text-xs sm:text-base font-black text-white uppercase tracking-tight truncate max-w-[80px] sm:max-w-[120px]">{player.name}</h3>
             <div className="flex flex-col items-center mt-0.5">
                 <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-widest ${ui.color}`}>
-                    {rankTier} {getRomanNumeral(subRank)}
+                    {tier} {getRomanNumeral(subRank)}
                 </span>
                 <span className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase">{player.points || 0} PTS</span>
             </div>
@@ -128,7 +128,7 @@ const CoinToss = ({ resultColor, onFinish, user, opponent }: { resultColor: Colo
             <div className="mt-4 sm:mt-6 flex flex-col items-center gap-1 sm:gap-2">
                 <div className="w-8 sm:w-12 h-0.5 sm:h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent"></div>
                 <p className="text-white font-bold text-[9px] sm:text-xs uppercase tracking-[0.1em] opacity-70">
-                  {resultColor === Color.RED ? 'Bạn khai cuộc!' : 'Đối thủ đi nước đầu!'}
+                  {resultColor === Color.RED ? 'Bạn đi đầu tiên!' : 'Đối thủ đi đầu tiên!'}
                 </p>
             </div>
         </div>

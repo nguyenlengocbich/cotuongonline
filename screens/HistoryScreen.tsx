@@ -13,6 +13,17 @@ const HistoryScreen = ({ user }: { user: Player }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'all' | 'saved'>('all');
 
+    // RESET SCROLL ON INTERNAL TAB CHANGE
+    useEffect(() => {
+        const performReset = () => {
+            const container = document.getElementById('main-scroll-container');
+            if (container) container.scrollTop = 0;
+        };
+        performReset();
+        const frameId = requestAnimationFrame(performReset);
+        return () => cancelAnimationFrame(frameId);
+    }, [activeTab]);
+
     const fetchHistory = async () => {
         setIsLoading(true);
         try {

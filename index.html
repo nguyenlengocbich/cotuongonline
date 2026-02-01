@@ -3,27 +3,49 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Cờ Tướng Online</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iI2VlY2ZhMSIgc3Ryb2tlPSIjNWQ0MDM3IiBzdHJva2Utd2lkdGg9IjIiLz4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYjcxYzFjIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDx0ZXh0IHg9IjUwIiB5PSI2NSIgZm9udC1mYW1pbHk9Ik5vdG8gU2VyaWYgU0MsIHNlcmlmIiBmb250LXdlaWdodD0iYm9sZCIgZm9udC1zaXplPSI0NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2I3MWMxYyI+5birPC90ZXh0Pgo8L3N2Zz4=" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* Custom font for Chinese characters if available, fallback to sans-serif */
       @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&display=swap');
       
-      body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #1a1a1a;
+      html, body {
+        height: 100%;
+        height: 100dvh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Ngăn chặn body cuộn để app mượt hơn */
+        background-color: #0f172a; /* Màu nền sâu hơn để tiệp màu với UI */
         color: #e5e5e5;
         overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
       }
+      
+      #root {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      body {
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      }
+
       .font-chinese {
         font-family: 'Noto Serif SC', serif;
       }
-      /* Hide scrollbar for clean mobile UI */
+
+      /* Tối ưu thanh cuộn */
       ::-webkit-scrollbar {
         width: 0px;
         background: transparent;
+      }
+
+      /* Hỗ trợ an toàn cho iPhone (Safe Area) */
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
       }
     </style>
   <script type="importmap">
