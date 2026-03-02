@@ -333,14 +333,14 @@ const App: React.FC = () => {
 
     // Chỉ tính điểm (Ranked) cho chế độ Online Matchmaking
     // Chế độ 'room' và 'ai' là Unranked -> Chỉ lưu lịch sử, không cộng trừ điểm
-    if (mode === 'ai' || mode === 'room') {
+    if(mode === 'ai') return 0;
+    if (mode === 'room') {
         try {
             await supabase.from('matches').insert([{
                 player_id: user.id,
                 opponent_name: opponentName,
                 result: result,
                 points_delta: 0,
-                moves: moves,
                 mode: mode,
                 created_at: new Date().toISOString()
             }]);
@@ -384,7 +384,6 @@ const App: React.FC = () => {
             opponent_name: opponentName,
             result: result,
             points_delta: delta,
-            moves: moves,
             mode: mode,
             created_at: new Date().toISOString()
         }]);
