@@ -6,7 +6,7 @@ import { Player } from '../types';
 import { INITIAL_BOARD_SETUP } from '../services/xiangqiRules';
 import { AvatarBox, LoadingIndicator, SplashLoading } from '../components/Shared';
 import { AlertModal, KickConfirmModal } from '../components/Modals';
-import { 
+import {
     Plus, List, Search, ArrowLeft, UserPlus, LogOut, Check, DoorOpen, Users, X, RefreshCw, PlayCircle
 } from 'lucide-react';
 
@@ -42,17 +42,17 @@ const InviteModal = ({ isOpen, onClose, user, roomCode, roomId, blackPlayerId }:
             if (!friendships) return;
             const friendIds = friendships.map(f => f.user_id === user.id ? f.friend_id : f.user_id);
             if (friendIds.length === 0) { setOnlineFriends([]); return; }
-            
+
             // Check for activity within last 2 minutes
             const twoMinutesAgo = new Date(Date.now() - 120000).toISOString();
             const { data: profiles } = await supabase.from('profiles').select('*').in('id', friendIds).eq('is_online', true).gt('last_seen', twoMinutesAgo);
             setOnlineFriends(profiles || []);
-        } catch (e) {} finally { if (!silent) setLoading(false); }
+        } catch (e) { } finally { if (!silent) setLoading(false); }
     };
 
     const sendInvite = async (friend: any) => {
         console.log(`[Invite] Sending direct broadcast invite to: ${friend.id}`);
-        
+
         const invitePayload = {
             senderId: user.id,
             senderName: user.name,
@@ -78,9 +78,9 @@ const InviteModal = ({ isOpen, onClose, user, roomCode, roomId, blackPlayerId }:
             });
 
             // 2. Gửi qua DB (Dự phòng cho người nhận không online ngay lúc đó)
-            await supabase.from('messages').insert([{ 
-                sender_id: user.id, 
-                receiver_id: friend.id, 
+            await supabase.from('messages').insert([{
+                sender_id: user.id,
+                receiver_id: friend.id,
                 content: JSON.stringify({ type: 'invite', ...invitePayload })
             }]);
 
@@ -112,14 +112,13 @@ const InviteModal = ({ isOpen, onClose, user, roomCode, roomId, blackPlayerId }:
                                     <AvatarBox avatar={friend.avatar} className="w-10 h-10" isOnline={true} />
                                     <span className="text-xs font-bold text-white">{friend.name}</span>
                                 </div>
-                                <button 
-                                    disabled={isInRoom || isCoolingDown} 
-                                    onClick={() => sendInvite(friend)} 
-                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all min-w-[80px] flex items-center justify-center ${
-                                        isInRoom ? 'bg-emerald-600/20 text-emerald-500' :
-                                        isCoolingDown ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed' : 
-                                        'bg-blue-600 text-white active:scale-95 shadow-lg'
-                                    }`}
+                                <button
+                                    disabled={isInRoom || isCoolingDown}
+                                    onClick={() => sendInvite(friend)}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all min-w-[80px] flex items-center justify-center ${isInRoom ? 'bg-emerald-600/20 text-emerald-500' :
+                                        isCoolingDown ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed' :
+                                            'bg-blue-600 text-white active:scale-95 shadow-lg'
+                                        }`}
                                 >
                                     {isInRoom ? 'Trong phòng' : isCoolingDown ? `${remainingSec}s` : 'Mời'}
                                 </button>
@@ -133,7 +132,7 @@ const InviteModal = ({ isOpen, onClose, user, roomCode, roomId, blackPlayerId }:
 };
 
 const RoomLobbyScreen = ({ user }: { user: Player }) => {
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const joinCodeFromUrl = queryParams.get('join');
@@ -147,7 +146,7 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
     const [logs, setLogs] = useState<string[]>([]);
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [showKickConfirm, setShowKickConfirm] = useState(false);
-    const [alertConfig, setAlertConfig] = useState<{title: string, message: string, type: 'error' | 'info'} | null>(null);
+    const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, type: 'error' | 'info' } | null>(null);
 
     useEffect(() => { currentRoomRef.current = currentRoom; }, [currentRoom]);
 
@@ -179,7 +178,7 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
                         } else {
                             await supabase.from('rooms').update({ black_player_id: null }).eq('id', oldRoom.id);
                         }
-                    } catch(e) {}
+                    } catch (e) { }
                     setCurrentRoom(null);
                     // Vào phòng mới
                     await handleJoinByCode(joinCodeFromUrl);
@@ -190,13 +189,13 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
             handleSwitchRoom();
         } else {
             // Nếu không có URL join code thì mới check phòng hiện tại (restore session)
-            checkCurrentRoom(); 
+            checkCurrentRoom();
         }
     }, [joinCodeFromUrl, user.id]);
 
     const checkCurrentRoom = async () => {
         // Nếu đang có code join thì không restore session cũ nữa để tránh xung đột
-        if (joinCodeFromUrl) return; 
+        if (joinCodeFromUrl) return;
 
         setIsLoading(true);
         try {
@@ -205,13 +204,15 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
                 .or(`red_player_id.eq.${user.id},black_player_id.eq.${user.id}`)
                 .neq('status', 'finished')
                 .maybeSingle();
-            
+
             if (room && !error) {
                 setCurrentRoom(room);
                 setLogs([`[*] Tiếp tục phiên làm việc tại phòng #${room.code}`]);
                 setView('detail');
+            } else {
+                setView('lobby');
             }
-        } catch (e) {} finally { setIsLoading(false); }
+        } catch (e) { } finally { setIsLoading(false); }
     };
 
     useEffect(() => {
@@ -229,13 +230,13 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
                 .select('*, red:red_player_id(*)')
                 .eq('status', 'waiting')
                 .is('black_player_id', null)
-                .not('code', 'is', null) 
+                .not('code', 'is', null)
                 .neq('red_player_id', user.id)
                 .order('created_at', { ascending: false });
             if (data) setAvailableRooms(data);
-        } catch (e) {} finally { setIsLoading(false); }
+        } catch (e) { } finally { setIsLoading(false); }
     };
-    
+
     const handleCreateRoom = async () => {
         if (isLoading) return; setIsLoading(true);
         const code = Math.floor(1000 + Math.random() * 8999).toString();
@@ -252,22 +253,25 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
         try {
             const { data, error } = await supabase.from('rooms').select('*, red:red_player_id(*), black:black_player_id(*)').eq('code', targetCode).eq('status', 'waiting').maybeSingle();
             if (data) {
-                if (data.red_player_id === user.id) { 
-                    setCurrentRoom(data); 
-                    setView('detail'); 
+                if (data.red_player_id === user.id) {
+                    setCurrentRoom(data);
+                    setView('detail');
                 } else if (data.black_player_id && data.black_player_id !== user.id) {
                     setAlertConfig({ title: "Lỗi", message: "Phòng đã đầy người chơi.", type: "error" });
                     setView('lobby');
                 } else {
                     const { error: joinError } = await supabase.from('rooms').update({ black_player_id: user.id }).eq('id', data.id);
-                    if (!joinError) { 
-                        setCurrentRoom({ ...data, black_player_id: user.id, black: user }); 
-                        setView('detail'); 
+                    if (!joinError) {
+                        setCurrentRoom({ ...data, black_player_id: user.id, black: user });
+                        setView('detail');
+                    } else {
+                        setAlertConfig({ title: "Lỗi", message: "Không thể tham gia phòng lúc này.", type: "error" });
+                        setView('lobby');
                     }
                 }
-            } else { 
-                setAlertConfig({ title: "Lỗi", message: "Phòng không tồn tại hoặc không còn hiệu lực.", type: "error" }); 
-                if (joinCodeFromUrl) navigate('/room'); // Clear invalid url code
+            } else {
+                setAlertConfig({ title: "Lỗi", message: "Phòng không tồn tại hoặc không còn hiệu lực.", type: "error" });
+                if (joinCodeFromUrl) navigate('/room');
                 else setView('lobby');
             }
         } catch (err) { setView('lobby'); } finally { setIsLoading(false); }
@@ -314,7 +318,7 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
     const handleKickPlayer = async () => {
         if (!currentRoom || !currentRoom.black_player_id || currentRoom.red_player_id !== user.id) return;
         setIsLoading(true);
-        try { await supabase.from('rooms').update({ black_player_id: null }).eq('id', currentRoom.id); setLogs(prev => [...prev, `[!] Bạn đã mời đối thủ rời phòng`]); } catch (e) {} finally { setIsLoading(false); setShowKickConfirm(false); }
+        try { await supabase.from('rooms').update({ black_player_id: null }).eq('id', currentRoom.id); setLogs(prev => [...prev, `[!] Bạn đã mời đối thủ rời phòng`]); } catch (e) { } finally { setIsLoading(false); setShowKickConfirm(false); }
     };
 
     const handleLeaveRoom = async () => {
@@ -327,8 +331,10 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
 
     if (view === 'detail') {
         if (!currentRoom) return <SplashLoading message="Đang kết nối phòng đấu..." />;
-        const isHost = currentRoom.red_player_id === user.id; 
-        const canStart = currentRoom.black_player_id !== null;
+        const isHost = currentRoom.red_player_id === user.id;
+        const isOpponentReady = currentRoom.status === 'waiting';
+        const canStart = currentRoom.black_player_id !== null && isOpponentReady;
+        const isOpponentViewingResults = currentRoom.black_player_id !== null && currentRoom.status === 'finished';
         return (
             <div className="flex flex-col h-full bg-[#12100e] animate-fade-in overflow-hidden">
                 {isLoading && <SplashLoading message="Đang xử lý..." />}
@@ -367,7 +373,7 @@ const RoomLobbyScreen = ({ user }: { user: Player }) => {
                     <div className="flex-1 flex flex-col overflow-hidden bg-[#1a1a14]/50 border border-white/5 rounded-[2rem] p-5">
                         <div className="flex items-center gap-2 mb-4 px-2"><Users className="w-4 h-4 text-slate-500" /><h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Nhật Ký Phòng</h3></div>
                         <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-                            {logs.map((log, i) => <div key={i} className="bg-[#1a1a14] p-3 rounded-2xl border border-white/5 text-[9px] font-bold text-slate-500 animate-slide-up"><span className="text-[#f59e0b]/50 mr-2">#{i+1}</span>{log}</div>)}
+                            {logs.map((log, i) => <div key={i} className="bg-[#1a1a14] p-3 rounded-2xl border border-white/5 text-[9px] font-bold text-slate-500 animate-slide-up"><span className="text-[#f59e0b]/50 mr-2">#{i + 1}</span>{log}</div>)}
                         </div>
                     </div>
                 </div>

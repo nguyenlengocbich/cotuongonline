@@ -207,7 +207,7 @@ export const ChatModal = ({ user, friend, onClose, onRead }: { user: Player, fri
         else if (data) setMessages(prev => prev.map(m => m.id === tempId ? data : m));
     };
 
-    const handleJoinRoom = (roomCode: string) => { onClose(); navigate(`/room?join=${roomCode}`); };
+    const handleJoinRoom = (roomCode: string) => { onClose(); navigate(`/room?join=${roomCode}&t=${Date.now()}`); };
 
     const renderMessageContent = (content: string, isMe: boolean) => {
         try {

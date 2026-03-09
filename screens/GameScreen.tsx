@@ -8,24 +8,24 @@ import { GameResultModal, SurrenderConfirmModal, AlertModal, OpponentProfileModa
 import CoinToss from '../components/CoinToss';
 import { AvatarBox } from '../components/Shared';
 import { AVATARS } from '../constants';
-import { 
-    getSafeMoves, 
-    INITIAL_BOARD_SETUP, 
-    getPieceAt, 
-    getRandomMove, 
-    isCheck, 
-    hasValidMoves, 
-    isPawnProgress 
+import {
+    getSafeMoves,
+    INITIAL_BOARD_SETUP,
+    getPieceAt,
+    getRandomMove,
+    isCheck,
+    hasValidMoves,
+    isPawnProgress
 } from '../services/xiangqiRules';
 import { getBestMove } from '../services/geminiService';
 import { Piece, Color, Move, Player, GameStatus, PieceType } from '../types';
 import { Flag, Loader2 } from 'lucide-react';
 
 const RANDOM_NAMES = [
-    "张伟", "李娜", "王芳", "陈静", 
-    "김지훈", "박서jun", "이영희", 
-    "佐藤 健", "田中 結衣", "鈴木 一郎", 
-    "Robert J. Miller", "Sarah Henderson", "Alex Thompson", "Emily Watson", 
+    "张伟", "李娜", "王芳", "陈静",
+    "김지훈", "박서jun", "이영희",
+    "佐藤 健", "田中 結衣", "鈴木 一郎",
+    "Robert J. Miller", "Sarah Henderson", "Alex Thompson", "Emily Watson",
     "John Smith", "David Wilson", "Emma Stone", "Sophia Brown"
 ];
 
@@ -33,16 +33,16 @@ const MAX_MOVES_TOTAL = 300;
 const MAX_MOVES_EFFECTIVE = 120;
 const MAX_MOVES_PROGRESS = 60;
 
-export const GameScreen = ({ mode, user, onGameEnd }: { 
-    mode: 'ai' | 'online', 
-    user?: Player, 
-    onGameEnd: (result: 'win' | 'loss' | 'draw', moves: Move[], opponent: string, opponentPoints: number, reason?: string, mode?: 'online' | 'ai' | 'room') => Promise<number> 
+export const GameScreen = ({ mode, user, onGameEnd }: {
+    mode: 'ai' | 'online',
+    user?: Player,
+    onGameEnd: (result: 'win' | 'loss' | 'draw', moves: Move[], opponent: string, opponentPoints: number, reason?: string, mode?: 'online' | 'ai' | 'room') => Promise<number>
 }) => {
     const params = useParams();
     const roomId = params.roomId;
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     const isBotMatch = new URLSearchParams(location.search).get('bot') === 'true';
     const queryBotName = new URLSearchParams(location.search).get('botName');
     const isRoomMode = mode === 'online' && (new URLSearchParams(location.search).get('mode') === 'room' || window.location.hash.includes('mode=room'));
@@ -54,7 +54,7 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
     const [isRoomLoaded, setIsRoomLoaded] = useState(mode === 'ai');
     const [pieces, setPieces] = useState<Piece[]>(INITIAL_BOARD_SETUP);
     const [turn, setTurn] = useState<Color>(Color.RED);
-    
+
     // Initialize color immediately for AI to ensure CoinToss has correct prop on first render
     const [myColor, setMyColor] = useState<Color>(() => {
         if (mode === 'ai') return Math.random() > 0.5 ? Color.RED : Color.BLACK;
@@ -71,14 +71,14 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
     const [selectedPiece, setSelectedPiece] = useState<Piece | null>(null);
     const [validMoves, setValidMoves] = useState<Move[]>([]);
     const [isAiThinking, setIsAiThinking] = useState(false);
-    const [gameResult, setGameResult] = useState<{result: 'win' | 'loss' | 'draw', delta: number, reason?: string, moves: Move[], initialBoard: Piece[]} | null>(null);
+    const [gameResult, setGameResult] = useState<{ result: 'win' | 'loss' | 'draw', delta: number, reason?: string, moves: Move[], initialBoard: Piece[] } | null>(null);
     const [showCoinToss, setShowCoinToss] = useState(true);
     const [isSurrendering, setIsSurrendering] = useState(false);
     const [showSurrenderConfirm, setShowSurrenderConfirm] = useState(false);
     const [showOpponentProfile, setShowOpponentProfile] = useState(false);
-    const [alertConfig, setAlertConfig] = useState<{title: string, message: string, type: 'error' | 'info'} | null>(null);
+    const [alertConfig, setAlertConfig] = useState<{ title: string, message: string, type: 'error' | 'info' } | null>(null);
     const [moves, setMoves] = useState<Move[]>([]);
-    
+
     const hasEndedRef = useRef(false);
     const isLocalMovingRef = useRef(false);
     const piecesRef = useRef<Piece[]>(INITIAL_BOARD_SETUP);
@@ -106,10 +106,10 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
     const handleGameOver = useCallback(async (roomData: any, extraMove: Move | null = null) => {
         if (hasEndedRef.current) return;
         hasEndedRef.current = true;
-        
+
         const currentUser = userRef.current;
         let result: 'win' | 'loss' | 'draw' = 'loss';
-        
+
         if (roomData.winner_id === 'draw' || roomData.winner_id === 'draw_by_moves') {
             result = 'draw';
         } else if (roomData.winner_id === currentUser?.id) {
@@ -123,10 +123,10 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
         const oppPoints = opponentInfoRef.current?.points || 1200;
         const finalMoves = extraMove ? [...movesRef.current, extraMove] : [...movesRef.current];
 
-        setGameResult({ 
-            result, 
-            delta: 0, 
-            reason, 
+        setGameResult({
+            result,
+            delta: 0,
+            reason,
             moves: finalMoves,
             initialBoard: INITIAL_BOARD_SETUP
         });
@@ -165,24 +165,24 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
 
     useEffect(() => {
         if (status !== GameStatus.PLAYING || showCoinToss || !isRoomLoaded || hasEndedRef.current) return;
-        
+
         const timer = setTimeout(() => {
-             if (turn === myColor) {
-                 if (!hasValidMoves(pieces, turn)) {
+            if (turn === myColor) {
+                if (!hasValidMoves(pieces, turn)) {
                     const winnerColor = turn === Color.RED ? Color.BLACK : Color.RED;
                     const isInCheck = isCheck(turn, pieces);
                     const endReason = isInCheck ? 'checkmate' : 'stalemate';
-                    
+
                     let winnerId = 'bot_id';
                     if (mode === 'online' && !isBotMatch && roomId) {
-                         winnerId = winnerColor === myColor ? (user?.id || '') : 'opp_id';
+                        winnerId = winnerColor === myColor ? (user?.id || '') : 'opp_id';
                     } else {
-                         winnerId = winnerColor === myColor ? (user?.id || '') : 'bot_id';
+                        winnerId = winnerColor === myColor ? (user?.id || '') : 'bot_id';
                     }
-                    
+
                     handleGameOver({ winner_id: winnerId, end_reason: endReason });
-                 }
-             }
+                }
+            }
         }, 1000);
         return () => clearTimeout(timer);
     }, [pieces, turn, status, showCoinToss, isRoomLoaded, mode, isBotMatch, roomId, myColor, user, handleGameOver]);
@@ -192,13 +192,15 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
         try {
             const { data: room } = await supabase.from('rooms').select('status').eq('id', roomId).single();
             if (room && room.status === 'finished') {
-                await supabase.from('rooms').update({ 
-                    status: 'waiting',
-                    board_state: INITIAL_BOARD_SETUP,
-                    turn: 'red',
-                    winner_id: null,
-                    end_reason: null
-                }).eq('id', roomId);
+                if (room.red_player_id !== user?.id) {
+                    await supabase.from('rooms').update({
+                        status: 'waiting',
+                        board_state: INITIAL_BOARD_SETUP,
+                        turn: 'red',
+                        winner_id: null,
+                        end_reason: null
+                    }).eq('id', roomId);
+                }
             }
             navigate('/room');
         } catch (e) {
@@ -214,7 +216,7 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
                 const currentUser = userRef.current;
                 const amIRed = room.red_player_id === currentUser.id;
                 const myAssignedColor = amIRed ? Color.RED : Color.BLACK;
-                
+
                 setMyColor(myAssignedColor);
                 if (room.board_state) setPieces(room.board_state);
                 if (room.turn) setTurn(room.turn as Color);
@@ -223,10 +225,10 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
                     setOpponentInfo(opp);
                     opponentInfoRef.current = opp;
                 }
-                
+
                 if (room.status === 'playing' && room.last_move_by) {
-                     setShowCoinToss(false);
-                     setLastActionTime(Date.now());
+                    setShowCoinToss(false);
+                    setLastActionTime(Date.now());
                 }
 
                 if (room.status === 'finished') handleGameOver(room);
@@ -242,10 +244,10 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
             setMyColor(randomColor);
             const randomName = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
             const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
-            const oppData = { 
-                name: queryBotName || randomName, 
-                avatar: randomAvatar, 
-                points: user?.points ? Math.max(1000, user.points + Math.floor(Math.random() * 200 - 100)) : 1200, 
+            const oppData = {
+                name: queryBotName || randomName,
+                avatar: randomAvatar,
+                points: user?.points ? Math.max(1000, user.points + Math.floor(Math.random() * 200 - 100)) : 1200,
                 rankTier: "Vàng", subRank: 3,
                 wins: Math.floor(Math.random() * 100),
                 losses: Math.floor(Math.random() * 100)
@@ -261,7 +263,7 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
                 .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, (payload) => {
                     const newData = payload.new;
                     const currentUser = userRef.current;
-                    
+
                     if (newData.status === 'finished') {
                         handleGameOver(newData);
                         return;
@@ -283,22 +285,23 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
                     const { move, sender_id, isGameOver, winner_id, end_reason } = payload.payload;
                     if (sender_id !== userRef.current?.id) {
                         setMoves(prev => [...prev, move]);
-                        
+
                         if (isGameOver) {
-                            handleGameOver({ 
-                                winner_id: winner_id || sender_id, 
-                                status: 'finished', 
-                                end_reason: end_reason || 'checkmate' 
+                            handleGameOver({
+                                winner_id: winner_id || sender_id,
+                                status: 'finished',
+                                end_reason: end_reason || 'checkmate'
                             }, move);
                         }
                     }
                 })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, () => { 
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, () => {
+                    if (hasEndedRef.current) return;
                     if (isRoomMode) navigate('/room');
                     else navigate('/');
                 })
                 .subscribe();
-            
+
             channelRef.current = channel;
             return () => { channel.unsubscribe(); };
         } else if (mode === 'ai') {
@@ -306,8 +309,8 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
         }
     }, [roomId, mode, fetchRoomData, handleGameOver, isBotMatch, user?.points, isRoomMode, queryBotName]);
 
-    const handleCoinTossFinish = useCallback(() => { 
-        setShowCoinToss(false); 
+    const handleCoinTossFinish = useCallback(() => {
+        setShowCoinToss(false);
         setLastActionTime(Date.now());
     }, []);
 
@@ -319,15 +322,15 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
 
         const oppColor = currentTurn === Color.RED ? Color.BLACK : Color.RED;
         const capturedPiece = getPieceAt(currentPieces, tx, ty);
-        
+
         const nextTurn = oppColor;
         const newPieces = currentPieces.filter(p => !(p.x === tx && p.y === ty)).map(p => p.id === piece.id ? { ...p, x: tx, y: ty } : p);
         const newMove = { fromX: fx, fromY: fy, toX: tx, toY: ty };
-        
+
         movesRef.current = [...movesRef.current, newMove];
         setMoves(movesRef.current);
         setLastActionTime(Date.now());
-        
+
         const moveIsCheck = isCheck(oppColor, newPieces);
         const moveIsPawnProgress = isPawnProgress(newMove, currentPieces);
 
@@ -370,15 +373,15 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
                 violationReason = 'progress_moves_limit';
             }
         }
-        
+
         if (!winnerIdByViolation) {
             const nextPlayerHasMoves = hasValidMoves(newPieces, nextTurn);
             if (!nextPlayerHasMoves) {
                 const isKill = isCheck(nextTurn, newPieces);
-                const moverId = (mode === 'ai' || isBotMatch) && currentTurn !== myColor 
-                    ? 'bot_id' 
+                const moverId = (mode === 'ai' || isBotMatch) && currentTurn !== myColor
+                    ? 'bot_id'
                     : userRef.current?.id;
-                
+
                 winnerIdByViolation = moverId;
                 violationReason = isKill ? 'checkmate' : 'stalemate';
             }
@@ -386,11 +389,11 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
 
         isLocalMovingRef.current = true;
         setPieces(newPieces);
-        
+
         if (!winnerIdByViolation) {
             setTurn(nextTurn);
         }
-        
+
         if (mode === 'online' && !isBotMatch && roomId && user) {
             const realWinnerId = winnerIdByViolation === 'bot_id' ? 'opp_id' : winnerIdByViolation;
 
@@ -398,23 +401,23 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
                 channelRef.current.send({
                     type: 'broadcast',
                     event: 'game_move',
-                    payload: { 
-                        move: newMove, 
-                        sender_id: user.id, 
-                        isGameOver: winnerIdByViolation !== null, 
-                        winner_id: realWinnerId, 
-                        end_reason: violationReason 
+                    payload: {
+                        move: newMove,
+                        sender_id: user.id,
+                        isGameOver: winnerIdByViolation !== null,
+                        winner_id: realWinnerId,
+                        end_reason: violationReason
                     }
                 });
             }
 
             const updatePayload: any = { board_state: newPieces, turn: nextTurn, last_move_by: user.id };
-            
-            if (winnerIdByViolation) { 
-                updatePayload.status = 'finished'; 
-                updatePayload.winner_id = realWinnerId; 
-                updatePayload.end_reason = violationReason; 
-                
+
+            if (winnerIdByViolation) {
+                updatePayload.status = 'finished';
+                updatePayload.winner_id = realWinnerId;
+                updatePayload.end_reason = violationReason;
+
                 handleGameOver(updatePayload, newMove);
             }
 
@@ -424,7 +427,7 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
             } else {
                 dbPromise.catch(console.error);
             }
-            
+
             setTimeout(() => { isLocalMovingRef.current = false; }, 500);
         } else if (mode === 'ai' || isBotMatch) {
             if (!winnerIdByViolation) {
@@ -461,10 +464,10 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
         setLastActionTime(Date.now());
 
         if (turn === myColor && !hasValidMoves(piecesRef.current, turn)) {
-             const winnerColor = turn === Color.RED ? Color.BLACK : Color.RED;
-             const endReason = isCheck(turn, piecesRef.current) ? 'checkmate' : 'stalemate';
-             handleGameOver({ winner_id: 'bot_id', end_reason: endReason });
-             return;
+            const winnerColor = turn === Color.RED ? Color.BLACK : Color.RED;
+            const endReason = isCheck(turn, piecesRef.current) ? 'checkmate' : 'stalemate';
+            handleGameOver({ winner_id: 'bot_id', end_reason: endReason });
+            return;
         }
 
         if (selectedPiece) {
@@ -472,28 +475,37 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
             if (move) { executeMove(selectedPiece.x, selectedPiece.y, x, y); setSelectedPiece(null); setValidMoves([]); return; }
         }
         const p = getPieceAt(piecesRef.current, x, y);
-        if (p && p.color === turn) { 
-            setSelectedPiece(p); 
-            setValidMoves(getSafeMoves(p, piecesRef.current)); 
+        if (p && p.color === turn) {
+            setSelectedPiece(p);
+            setValidMoves(getSafeMoves(p, piecesRef.current));
         }
         else { setSelectedPiece(null); setValidMoves([]); }
     };
-
     const handleExitGame = async () => {
         if (isBotMatch || mode === 'ai') { navigate('/'); return; }
         if (roomId && user) {
             try {
                 const { data: room } = await supabase.from('rooms').select('*').eq('id', roomId).single();
                 if (room) {
-                    if (room.red_player_id === user.id) await supabase.from('rooms').delete().eq('id', roomId);
-                    else await supabase.from('rooms').update({ black_player_id: null, status: 'waiting', board_state: INITIAL_BOARD_SETUP }).eq('id', roomId);
+                    if (room.red_player_id === user.id) {
+                        await supabase.from('rooms').delete().eq('id', roomId);
+                    } else {
+                        if (isRoomMode) {
+                            await supabase.from('rooms').update({
+                                black_player_id: null,
+                                status: 'waiting',
+                                board_state: INITIAL_BOARD_SETUP
+                            }).eq('id', roomId);
+                        } else {
+                            await supabase.from('rooms').update({ black_player_id: null }).eq('id', roomId);
+                        }
+                    }
                 }
-            } catch (e) {}
+            } catch (e) { }
         }
         if (isRoomMode) navigate('/room');
         else navigate('/');
     };
-
     if (!isRoomLoaded && (mode === 'online' || isBotMatch)) {
         return <div className="flex flex-col items-center justify-center h-full gap-4"><Loader2 className="w-8 h-8 text-red-500 animate-spin" /><p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Đang chuẩn bị...</p></div>;
     }
@@ -505,7 +517,7 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
             {showSurrenderConfirm && <SurrenderConfirmModal onConfirm={() => executeSurrender('resigned')} onCancel={() => setShowSurrenderConfirm(false)} />}
             {showOpponentProfile && <OpponentProfileModal opponent={opponentInfo} onClose={() => setShowOpponentProfile(false)} />}
             {gameResult && <GameResultModal {...gameResult} opponent={opponentInfo.name} mode={effectiveMode} onClose={handleExitGame} playerId={user?.id || ''} onBackToRoom={isRoomMode ? handleBackToRoom : undefined} />}
-            
+
             <div className="w-full max-sm:max-w-sm bg-slate-800 p-4 rounded-xl flex flex-col gap-3 border border-slate-700 shadow-xl">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2 cursor-pointer hover:bg-slate-700/50 p-1 rounded-lg transition-colors" onClick={() => setShowOpponentProfile(true)}>
@@ -524,28 +536,28 @@ export const GameScreen = ({ mode, user, onGameEnd }: {
                     </div>
                 </div>
 
-                <GameTimer 
-                  turn={turn}
-                  myColor={myColor}
-                  gameStatus={status}
-                  onTimeout={handleTimeout}
-                  lastMoveTime={lastActionTime}
+                <GameTimer
+                    turn={turn}
+                    myColor={myColor}
+                    gameStatus={status}
+                    onTimeout={handleTimeout}
+                    lastMoveTime={lastActionTime}
                 />
             </div>
 
-            <Board pieces={pieces} onPieceClick={() => {}} onSquareClick={onSquareClick} selectedPiece={selectedPiece} validMoves={validMoves} lastMove={moves.length > 0 ? moves[moves.length - 1] : null} checkedColor={isCheck(turn, pieces) ? turn : null} rotate={myColor === Color.BLACK} />
-            
+            <Board pieces={pieces} onPieceClick={() => { }} onSquareClick={onSquareClick} selectedPiece={selectedPiece} validMoves={validMoves} lastMove={moves.length > 0 ? moves[moves.length - 1] : null} checkedColor={isCheck(turn, pieces) ? turn : null} rotate={myColor === Color.BLACK} />
+
             <div className="w-full max-sm:max-w-sm mt-4 flex flex-col items-center">
                 {status === GameStatus.PLAYING && (
-                    <button 
-                        onClick={() => setShowSurrenderConfirm(true)} 
-                        disabled={isSurrendering} 
+                    <button
+                        onClick={() => setShowSurrenderConfirm(true)}
+                        disabled={isSurrendering}
                         className="w-full max-w-[280px] py-4 rounded-[1.25rem] bg-red-900/20 border border-red-500/30 flex items-center justify-center gap-3 transition-all active:scale-[0.97] hover:bg-red-900/30 group"
                     >
                         {isSurrendering ? (
-                           <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
+                            <Loader2 className="w-5 h-5 text-red-500 animate-spin" />
                         ) : (
-                           <Flag className="w-5 h-5 text-red-500 group-hover:animate-bounce" />
+                            <Flag className="w-5 h-5 text-red-500 group-hover:animate-bounce" />
                         )}
                         <span className="text-red-500 font-black uppercase text-xs tracking-widest">
                             {isSurrendering ? 'Đang gửi yêu cầu...' : 'Chấp nhận thua'}
